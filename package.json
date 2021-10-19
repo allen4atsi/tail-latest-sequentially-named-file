@@ -1,0 +1,22 @@
+{
+  "name": "tail-latest-sequentially-named-file",
+  "version": "0.1.0",
+  "description": "Open latest sequentially-named file in a folder, and tail it until a newer file comes along",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/allen4atsi/tail-latest-sequentially-named-file.git"
+  },
+  "author": "Allen Korslund",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/allen4atsi/tail-latest-sequentially-named-file/issues"
+  },
+  "homepage": "https://github.com/allen4atsi/tail-latest-sequentially-named-file#readme",
+  "dependencies": {
+    "tailing-stream": "^0.2.0"
+  }
+}
