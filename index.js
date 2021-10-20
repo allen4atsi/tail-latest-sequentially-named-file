@@ -1,5 +1,7 @@
 const TailingReadableStream = require('tailing-stream') ;
 const fs = require('fs') ;
+const path = require('path') ;
+const EventEmitter = require('events') ;
 
 module.exports = ({
     folder
@@ -33,24 +35,62 @@ module.exports = ({
     if (!fs.statSync(folder).isDirectory())
         throw new Error('Path provided does not point to a folder/directory.')
     ;
-    // Find newest file
-    const matchingFiles = fs.readdirSync(folder)
-        .filter(fileName => fileName.match(fileNamePattern) !== null)
-    ;
-    if (matchingFiles.length === 0)
+    // Ensure at least 1 file found
+    if (
+        fs.readdirSync(folder)
+            .filter(fileName => fileName.match(fileNamePattern) !== null)
+            .length === 0
+    )
         throw new Error('No files found matching file name pattern')
     ;
-    let currentNewestFile = matchingFiles
-        .reduce(
-            (accumulator, current) =>
-                Number(
-                    current.match(fileNamePattern)[fileNamePatternMatchItem]
-                ) > Number(
-                    accumulator.match(fileNamePattern)[fileNamePatternMatchItem]
-                )
-                ? current
-                : accumulator
-        )
-    ;
-    logger.log(`Current newest file: ${currentNewestFile}`) ;
+    // Find newest file
+    let previousNewestFile ;
+    let currentNewestFile ;
+    let currentTailStreamDirect = { destroy: () => {}, destroyed: true } ;
+    class CurrentTailStreamEmitter extends EventEmitter {}
+    const currentTailStream = new CurrentTailStreamEmitter() ;
+    function checkFileList() {
+        const matchingFiles = fs.readdirSync(folder)
+            .filter(fileName => fileName.match(fileNamePattern) !== null)
+        ;
+        currentNewestFile = matchingFiles
+            .reduce(
+                (accumulator, current) =>
+                    Number(
+                        current.match(fileNamePattern)[fileNamePatternMatchItem]
+                    ) > Number(
+                        accumulator.match(fileNamePattern)[fileNamePatternMatchItem]
+                    )
+                    ? current
+                    : accumulator
+            )
+        ;
+        if (currentNewestFile !== previousNewestFile) {
+            currentTailStreamDirect.destroy() ; 
+            previousNewestFile = currentNewestFile ;
+            currentTailStreamDirect = TailingReadableStream.createReadStream(
+                `${folder}${
+                    folder.slice(-1) === path.sep
+                    ? ''
+                    : path.sep
+                }${currentNewestFile}`
+                , {timeout: false}
+            ) ;
+            currentTailStreamDirect.on('data', function() {
+                currentTailStream.emit('data', ...arguments) ;
+            }) ;
+            logger.log(`Current newest file: ${currentNewestFile}`) ;
+        }
+    }
+    checkFileList() ;
+    const watcher = fs.watch(folder, () => checkFileList()) ;
+    return {
+        currentNewestFile: () => currentNewestFile
+        , currentTailStream
+        , close: () => {
+            currentTailStreamDirect.destroy() ;
+            watcher.close() ;
+            logger.log('Destroyed tail stream and closed folder watcher.') ;
+        }
+    } ;
 } ;
