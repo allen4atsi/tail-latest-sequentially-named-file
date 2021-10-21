@@ -33,7 +33,7 @@ given to `TailingReadableStream` may be given using
 
 Simple debugging messages may be sent to the console by enabling `debug: true`;
 alternatively, you may specify your own logging functions by setting `log` and
-`error` keys on the `logger` argument.
+`error` keys' values to functions on the `logger` argument.
 
 Example:
 
