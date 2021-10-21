@@ -74,7 +74,11 @@ module.exports = ({
                     ? ''
                     : path.sep
                 }${currentNewestFile}`
-                , {timeout: false}
+                , (
+                    typeof tailingReadableStreamOptions === 'undefined'
+                    ? {timeout}
+                    : tailingReadableStreamOptions
+                )
             ) ;
             currentTailStreamDirect.on('data', function() {
                 currentTailStream.emit('data', ...arguments) ;
